@@ -21,6 +21,7 @@ use std::{
 
 pub struct Runner {
     addr: String,
+    local_addr: String,
     session: Session,
 }
 
@@ -32,7 +33,7 @@ impl Runner {
     const KEEP_ALIVE_INTERVAL: u32 = 5;
 
     /// Instantiates a new [Runner] object.
-    pub fn new(hostname: &str, port: u16, credentials: &Credentials) -> Result<Self> {
+    pub fn new(hostname: &str, port: u16, local_addr: &str, credentials: &Credentials) -> Result<Self> {
         // Create a TCP stream to connect to the server.
         let addr: String = format!("{}:{}", hostname, port);
         let tcp: TcpStream = match TcpStream::connect(&addr) {
@@ -97,7 +98,11 @@ impl Runner {
             anyhow::bail!(msg);
         }
 
-        Ok(Self { addr, session })
+        Ok(Self {
+            addr,
+            local_addr: local_addr.to_string(),
+            session,
+        })
     }
 
     pub fn run(&mut self, action: &Action, env: &HashMap<String, String>) -> Result<Vec<String>> {
@@ -256,5 +261,10 @@ impl Runner {
                 Err(anyhow::anyhow!(msg))
             },
         }
+    }
+
+    /// Retrieves the local address of the target [Runner].
+    pub fn local_addr(&self) -> &str {
+        &self.local_addr
     }
 }

@@ -73,7 +73,13 @@ impl Config {
                         .as_i64()
                         .ok_or(anyhow::anyhow!("failed to parse port number"))?
                         as u16;
-                    let worker: Runner = Runner::new(&hostname, port, credentials)?;
+
+                    let local_addr: String = match worker_config["local-address"].as_str() {
+                        Some(local_addr) => local_addr.to_string(),
+                        None => anyhow::bail!("missing local_addr"),
+                    };
+
+                    let worker: Runner = Runner::new(&hostname, port, &local_addr, credentials)?;
                     workers.push(Mutex::new(worker));
                 }
             }
