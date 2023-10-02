@@ -60,7 +60,8 @@ impl Config {
 
     /// Retrieves the list of workers from target [Config] object.
     pub fn get_workers(&self, credentials: &Credentials) -> Result<Vec<Mutex<Runner>>> {
-        let mut workers: Vec<Mutex<Runner>> = Vec::new();
+        let mut id: usize = 0;
+        let mut runners: Vec<Mutex<Runner>> = Vec::new();
         for c in &self.yaml {
             if let Some(workers_config) = c["workers"].as_vec() {
                 for worker_config in workers_config {
@@ -79,13 +80,14 @@ impl Config {
                         None => anyhow::bail!("missing local_addr"),
                     };
 
-                    let worker: Runner = Runner::new(&hostname, port, &local_addr, credentials)?;
-                    workers.push(Mutex::new(worker));
+                    let worker: Runner = Runner::new(id, &hostname, port, &local_addr, credentials)?;
+                    runners.push(Mutex::new(worker));
+                    id += 1;
                 }
             }
         }
 
-        Ok(workers)
+        Ok(runners)
     }
 
     /// Retrieves the server address from target [Config] object.
