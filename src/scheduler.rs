@@ -39,7 +39,6 @@ impl Scheduler {
         // Schedule tasks.
         let mut schedule: Vec<Worker> = {
             let barriers: Arc<Vec<Barrier>> = Self::create_barriers(&job.barrier_participants());
-            let placement: HashMap<usize, String> = self.build_placement(job.get_task_names());
             let num_workers: usize = job.num_workers();
             let runners: Vec<Mutex<Runner>> = loop {
                 if let Ok(runners) = self.allocate_runners(num_workers) {
@@ -48,6 +47,7 @@ impl Scheduler {
 
                 sleep(Duration::from_millis(Self::SLEEP_INTERVAL));
             };
+            let placement: HashMap<usize, String> = self.build_placement(&runners, job.get_task_names());
             Self::schedule_tasks(job, runners, placement, barriers)
         };
 
@@ -137,12 +137,22 @@ impl Scheduler {
         Arc::new(barriers)
     }
 
-    fn build_placement(&self, task_queue_keys: Vec<String>) -> HashMap<usize, String> {
-        let mut worker_id: usize = 0;
+    fn build_placement(
+        &self,
+        runners: &Vec<Mutex<Runner>>,
+        mut task_queue_keys: Vec<String>,
+    ) -> HashMap<usize, String> {
+        assert_eq!(
+            runners.len(),
+            task_queue_keys.len(),
+            "number of runners must match number of task queues"
+        );
+
         let mut worker_names: HashMap<usize, String> = HashMap::new();
-        for task_queue in &task_queue_keys {
-            worker_names.insert(worker_id, task_queue.to_string());
-            worker_id += 1;
+        for runner in runners {
+            if let Ok(runner) = &runner.lock() {
+                worker_names.insert(runner.id(), task_queue_keys.pop().unwrap());
+            }
         }
 
         worker_names
@@ -213,11 +223,12 @@ impl Scheduler {
         let mut worker_id: usize = 0;
         let mut workers: Vec<Worker> = Vec::new();
         while let Some(runner) = runners.pop() {
-            let runner: Arc<Mutex<Runner>> = Arc::new(runner);
-            let runner_name: &String = placement
-                .get(&worker_id)
+            let runner_id: usize = runner.lock().unwrap().id();
+            let worker_name: &String = placement
+                .get(&runner_id)
                 .expect("numbers of allocated runners should match the number of required workers");
-            let worker: Worker = match Worker::new(runner, &runner_name, &mut job, barriers.clone()) {
+            let runner: Arc<Mutex<Runner>> = Arc::new(runner);
+            let worker: Worker = match Worker::new(runner, &worker_name, &mut job, barriers.clone()) {
                 Ok(worker) => worker,
                 Err(e) => {
                     let msg: String = format!("failed to create worker (e={:?})", e);
@@ -226,7 +237,6 @@ impl Scheduler {
                 },
             };
             workers.push(worker);
-            worker_id += 1;
         }
 
         workers
