@@ -197,4 +197,9 @@ impl Job {
     pub fn env(&self) -> &HashMap<String, String> {
         &self.env
     }
+
+    /// Appends an environment variable to the job.
+    pub fn append_env(&mut self, key: String, value: String) {
+        self.env.insert(key, value);
+    }
 }

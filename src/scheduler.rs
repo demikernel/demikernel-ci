@@ -5,7 +5,7 @@
 // Imports
 //======================================================================================================================
 
-use crate::{job::Job, runner::Runner, task::Task, worker::Worker};
+use crate::{config::Config, job::Job, runner::Runner, task::Task, worker::Worker};
 use anyhow::Result;
 use std::{
     collections::HashMap,
@@ -220,7 +220,21 @@ impl Scheduler {
             placement.len()
         );
 
-        let mut worker_id: usize = 0;
+        // Print list of runners.
+        for runner in &runners {
+            if let Ok(runner) = &runner.lock() {
+                let local_addr: String = runner.local_addr().to_string();
+                let worker_name: String = placement
+                    .get(&runner.id())
+                    .expect("numbers of allocated runners should match the number of required workers")
+                    .to_string();
+
+                let env_var_prefix: String = Config::env_var_prefix();
+                let key: String = format!("{}{}", env_var_prefix, worker_name.to_uppercase());
+                job.append_env(key, local_addr);
+            }
+        }
+
         let mut workers: Vec<Worker> = Vec::new();
         while let Some(runner) = runners.pop() {
             let runner_id: usize = runner.lock().unwrap().id();
