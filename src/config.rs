@@ -142,7 +142,7 @@ impl Config {
     }
 
     /// Retrieves the prefix for environment variables from target [Config] object.
-    pub fn env_var_prefix(&self) -> String {
+    pub fn env_var_prefix() -> String {
         Self::ENV_VAR_PREFIX.to_string()
     }
 }

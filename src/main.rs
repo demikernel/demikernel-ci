@@ -71,7 +71,7 @@ fn main() -> Result<()> {
     let runners: Vec<Mutex<Runner>> = config.get_workers(&credentials)?;
     let scheduler: Arc<Scheduler> = Arc::new(Scheduler::new(runners));
     let job_home: String = config.jobs_home();
-    let env_var_prefix: String = config.env_var_prefix();
+    let env_var_prefix: String = Config::env_var_prefix();
 
     // Request dispatcher.
     let dispatcher = |request: Request<()>| -> Result<Vec<String>> {
