@@ -18,5 +18,8 @@ target/
 tags
 tags.*
 
+# config files
+*.yaml
+
 # rust
 Cargo.lock
